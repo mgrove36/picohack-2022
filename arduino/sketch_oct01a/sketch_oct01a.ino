@@ -1,8 +1,8 @@
 #include <SPI.h>
 #include <WiFiNINA.h>
 
-char SSID[] = "OnePlus 6T";     // the name of your network/HotSpot
-char PASSWORD[] = "linsey69";    // the password of your WiFi
+char SSID[] = "SOTON-IoT";     // the name of your network/HotSpot
+char PASSWORD[] = "c0YhM1lf8v88";    // the password of your WiFi
 
 byte mac[6];                     // the MAC address of your Wifi Module
 
