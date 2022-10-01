@@ -1,10 +1,12 @@
 import logo from './logo.svg';
 import './App.css';
+import React, { useState } from 'react';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, connectFirestoreEmulator } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, connectAuthEmulator } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, getAuth, onAuthStateChanged, connectAuthEmulator, signOut } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
-import { useState } from 'react';
+import FirstAiderDashboard from './FirstAiderDashboard';
+import PatientDashboard from "./PatientDashboard";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCQ3FcfwlAckhZNEVz3RmGGGuscW1jWDHY",
@@ -23,36 +25,59 @@ const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-
 // emulators
-connectFirestoreEmulator(db, 'localhost', 8080);
-connectAuthEmulator(auth, "http://localhost:9099");
+// connectFirestoreEmulator(db, 'localhost', 8080);
+// connectAuthEmulator(auth, "http://localhost:9099");
 
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    
+    this.state = {
+      user: null,
+	    email: "",
+      password: "",
+      db: db,
+    };
+  }
 
+  componentDidMount() {
+    
+    onAuthStateChanged(auth, (userCredential) => {
+      console.log("state changing...")
+      if (userCredential) {
+        // User is signed in, see docs for a list of available properties
+        // https://firebase.google.com/docs/reference/js/firebase.User
+        this.setState({
+          user: userCredential,
+        });
+        console.log("signed in");
+        console.log(userCredential);
+        console.log(this.state.user);
+        // console.log(this.state.user.uid === null);
+        // ...
+      } else {
+        // User is signed out
+        // ...
+        this.setState({
+          user: null,
+        });
+        console.log("signed out");
+        console.log(this.state.user);
+      }
+    });
+  }
 
-// onAuthStateChanged(auth, (user) => {
-//   if (user) {
-//     // User is signed in, see docs for a list of available properties
-//     // https://firebase.google.com/docs/reference/js/firebase.User
-//     const uid = user.uid;
-//     // ...
-//   } else {
-//     // User is signed out
-//     // ...
-// }});
-
-
-
-
-
-function App() {
-  const signIn = (event) => {
+  signIn = (event) => {
     event.preventDefault();
-    signInWithEmailAndPassword(auth, email, password)
+    signInWithEmailAndPassword(auth, this.state.email, this.state.password)
       .then((userCredential) => {
         // Signed in 
-        const user = userCredential.user;
+        this.setState({
+          user: userCredential.user
+        });
         alert("logged in!");
+        console.log(this.props.user);
         // ...
       })
       .catch((error) => {
@@ -61,12 +86,14 @@ function App() {
       });
   };
 
-  const signUp = (event) => {
+  signUp = (event) => {
     event.preventDefault();
-    createUserWithEmailAndPassword(auth, email, password)
+    createUserWithEmailAndPassword(auth, this.state.email, this.state.password)
       .then((userCredential) => {
         // Signed in 
-        const user = userCredential.user;
+        this.setState({
+          user: userCredential.user
+        });
         alert("logged in!");
         // ...
       })
@@ -77,48 +104,60 @@ function App() {
         // ..
       });
   };
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <h1>Tiny Town Community First Response</h1>
-      </header>
-      <main>
-        <form onSubmit={signUp}>
-          <input
-            type="email"
-            placeholder="email"
-            onChange={e => setEmail(e.target.value)}
-            value={email}
-          />
-          <input
-            type="password"
-            placeholder="password"
-            onChange={e => setPassword(e.target.value)}
-            value={password}
-          />
-          <input type="submit" value="Sign up"/>
-        </form>
-        <form onSubmit={signIn}>
-          <input
-            type="email"
-            placeholder="email"
-            onChange={e => setEmail(e.target.value)}
-            value={email}
-          />
-          <input
-            type="password"
-            placeholder="password"
-            onChange={e => setPassword(e.target.value)}
-            value={password}
-          />
-          <input type="submit" value="Sign in"/>
-        </form>
-      </main>
-    </div>
-  );
+  
+  render() {
+    return (
+      <div className="App">
+        <header className="App-header">
+          <img src={logo} className="App-logo" alt="logo" />
+          <h1>Tiny Town Community First Response</h1>
+        </header>
+        <main>
+          {
+            (typeof this.state.user !== "undefined" && this.state.user !== null) ?
+            <FirstAiderDashboard db={this.state.db}/>
+            :
+            // user.role === "firstAider"
+            // ?
+            // :
+            // <PatientDashboard/>
+            <>
+            <form onSubmit={this.signUp}>
+              <input
+                type="email"
+                placeholder="email"
+                onChange={(e) => this.setState({email: e.target.value})}
+                value={this.state.email}
+              />
+              <input
+                type="password"
+                placeholder="password"
+                onChange={(e) => this.setState({password: e.target.value})}
+                value={this.state.password}
+              />
+              <input type="submit" value="Sign up"/>
+            </form>
+            <form onSubmit={this.signIn}>
+              <input
+                type="email"
+                placeholder="email"
+                onChange={e => this.setState({email: e.target.value})}
+                value={this.state.email}
+              />
+              <input
+                type="password"
+                placeholder="password"
+                onChange={e => this.setState({password: e.target.value})}
+                value={this.state.password}
+              />
+              <input type="submit" value="Sign in"/>
+            </form>
+            </>
+        }
+        </main>
+      </div>
+    );
+  }
 }
 
 export default App;

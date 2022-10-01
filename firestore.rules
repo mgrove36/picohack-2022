@@ -61,6 +61,7 @@ service cloud.firestore {
       }
       
       allow update: if isFirstAiderPresent();
+	  allow read: if true;
 
       match /linkedFirstAiders/{firstAider} {
         function getPossibleFields() {
@@ -86,9 +87,6 @@ service cloud.firestore {
 
       allow read: if request.auth.uid == patient;
       allow update: if request.auth.uid == patient && verifyUpdateFields(getPossibleUpdateFields());
-    }
-    match /{document=**} {
-      allow read, write: if false;
     }
   }
 }
