@@ -1,6 +1,92 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+		function isSignedIn() {
+			return request.auth != null;
+		}
+
+		function isAdmin() {
+			return request.auth.token.admin == true;
+		}
+
+		function verifyCreateFields(fields) {
+			return request.resource.data.keys().hasAll(fields[0]) && request.resource.data.keys().hasOnly(fields[1]);
+		}
+
+		function verifyUpdateFields(fields) {
+			let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+			return affectedKeys.hasAll([]) && affectedKeys.hasOnly(fields[isAdmin() ? 0 : 1]);
+		}
+
+		function getRequestField(field, default_value) {
+			return request.resource.data.get(field, default_value);
+		}
+
+		function verifyBoolType(field) {
+			return getRequestField(field, true) is bool;
+		}
+
+		function verifyStringType(field) {
+			return getRequestField(field, "") is string;
+		}
+
+		function verifyEmptyArrayType(field) {
+			return getRequestField(field, []) == [];
+		}
+
+    match /first-aiders/{firstAider} {
+			function getPossibleFields() {
+				let nonAdminFields = ["address", "email", "phone", "qualificationId", "qualificationName"];
+				let adminFields = ["qualificationExpiry"];
+
+				let allFields = adminFields.concat(nonAdminFields);
+				return [nonAdminFields, allFields];
+			}
+
+      allow read: if request.auth.uid == firstAider;
+      allow update: if request.auth.uid == firstAider && verifyUpdateFields(getPossibleUpdateFields());
+    }
+    match /panic-events/{panicEvent} {
+			function getPossibleFields() {
+				let nonAdminFields = ["resolved"];
+				let adminFields = [];
+
+				let allFields = adminFields.concat(nonAdminFields);
+				return [nonAdminFields, allFields];
+			}
+
+      function isFirstAiderPresent(groupId) {
+        let eventFirstAiderData = get(/databases/$(database)/documents/panic-events/$(panicEvent)/linkedFirstAiders/$(request.auth.uid)).data;
+        return eventFirstAiderData.attending == true && eventFirstAiderData.present == true;
+      }
+      
+      allow update: if isFirstAiderPresent();
+
+      match /linkedFirstAiders/{firstAider} {
+        function getPossibleFields() {
+          let nonAdminFields = ["attending", "present"];
+          let adminFields = [];
+
+          let allFields = adminFields.concat(nonAdminFields);
+          return [nonAdminFields, allFields];
+        }
+        
+        allow read: if isSignedIn();
+        allow update: if request.auth.uid == firstAider && verifyUpdateFields(getPossibleUpdateFields());
+      }
+    }
+    match /patients/{patient} {
+			function getPossibleFields() {
+				let nonAdminFields = ["accessNotes", "address", "phone", "conditions", "email", "doNotResuscitate", "keysafeCode", "medication", "nextOfKinName", "nextOfKinPhone"];
+				let adminFields = [];
+
+				let allFields = adminFields.concat(nonAdminFields);
+				return [nonAdminFields, allFields];
+			}
+
+      allow read: if request.auth.uid == patient;
+      allow update: if request.auth.uid == patient && verifyUpdateFields(getPossibleUpdateFields());
+    }
     match /{document=**} {
       allow read, write: if false;
     }
