@@ -8,7 +8,7 @@ const db = admin.firestore();
 exports.panic = functions.https.onRequest((request, response) => {
   functions.logger.info("Panic has been issued", {structuredData: true});
   //Code to make a panic goes here
-  functions.logger.info(`request.body=${request.body}`, {structuredData: true});
+  functions.logger.info(request.body, {structuredData: true});
   db.collection("panic-events").add({
 	patient: request.body.patient,
 	resolved: false,
