@@ -8,6 +8,7 @@ const db = admin.firestore();
 exports.panic = functions.https.onRequest((request, response) => {
   functions.logger.info("Panic has been issued", {structuredData: true});
   //Code to make a panic goes here
+  functions.logger.info(`request.body=${request.body}`, {structuredData: true});
   db.collection("panic-events").add({
 	patient: request.body.patient,
 	resolved: false,
@@ -16,6 +17,10 @@ exports.panic = functions.https.onRequest((request, response) => {
   response.send(`patient: ${request.body.patient}`);
 });
 
+exports.ping = functions.https.onRequest((request, response) => {
+	functions.logger.info("pong", {structuredData: true});
+	response.send(`Pong`);
+  });
 exports.userCreated = functions.auth.user().onCreate((user) => {
 	return admin.auth().setCustomUserClaims(user.uid, {
 		admin: false,
@@ -42,7 +47,7 @@ exports.firstAiderCreated = functions.firestore.document("first-aiders/{userId}/
 		});
 	});
 
-exports.firstAiderCreated = functions.firestore.document("patients/{userId}/")
+exports.patientCreated = functions.firestore.document("patients/{userId}/")
 .onCreate(async (snap, context) => {
 	admin.auth().setCustomUserClaims(snap.id, {
 		role: "patient",
